@@ -1,0 +1,10 @@
+version: 3
+
+agent:
+  authtoken: <authtoken>
+
+endpoints:
+  - name: httpbin
+    # url: https://customdomain.ngrok.dev # you can put a custom endpoint here (you get one for free https://dashboard.ngrok.com/domains)
+    upstream:
+      url: 80

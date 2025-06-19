@@ -1,0 +1,5 @@
+#ignore ngrok.yml
+ngrok.yml
+
+#ignore the pets directory
+pets/*
