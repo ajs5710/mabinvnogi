@@ -210,9 +210,10 @@ while(True):
 
         # search image for each dye type
         resultSet = []
-        for dyeType in ["ClassicSpiritDye", "Dye", "HairDye", "InstrumentDye", "MagicInstrumentDye", "MetalDye", "WandDye"]:
+        # for dyeType in ["ClassicSpiritDye", "Dye", "HairDye", "InstrumentDye", "MagicInstrumentDye", "MetalDye", "WandDye"]:
+        for dyeType in Path("SearchImages").iterdir():
             # prepare search file for opencv
-            dyeTemplate = np.array(Image.open(dyeType + ".png").convert('RGB'))
+            dyeTemplate = np.array(Image.open(dyeType).convert('RGB'))
             dyeTemplate = dyeTemplate[:, :, ::-1].copy()
             grayscaleTemp = cv.cvtColor(dyeTemplate, cv.COLOR_BGR2GRAY)
 
@@ -223,7 +224,7 @@ while(True):
             hits = np.where( resGraph >= 0.82 )
             for pt in zip(*hits[::-1]):
                 resultSet.append({
-                    "type": dyeType,
+                    "type": dyeType.stem,
                     "point": pt,
                     "confidence": resGraph[pt[1]][pt[0]]
                 })
