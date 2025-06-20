@@ -16,14 +16,14 @@
       flex-direction: row;
       align-items: stretch;
     }
-    #left {
+    .left {
       width: 50vw;
       height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    #right {
+    .right {
       width: 50vw;
       padding: 40px 0 40px 0;
       box-sizing: border-box;
@@ -34,10 +34,10 @@
       align-items: stretch;
     }
     canvas {
-      background: #111;
       border-radius: 50%;
       box-shadow: 0 0 12px #0008;
       display: block;
+      position: absolute; top: 0; left: 0; 
     }
     h1 {
       margin: 0 0 20px 40px;
@@ -128,11 +128,17 @@
   </style>
 </head>
 <body>
-  <div id="left">
-    <canvas id="colorWheel" width="400" height="400"></canvas>
+  <div class="left">
+    <div style="position: relative; width: 400px; height: 400px;">
+      <canvas id="colorWheel" width="400" height="400" style="z-index: 1;"></canvas>
+      <canvas id="selectorCircle" width="400" height="400" style="z-index: 2; pointer-events: none;"></canvas>
+      <h1 id="clear" style="position: absolute; top: 0; right: 0; color: #444;" title="clear selection">X</h1>
+    </div>
   </div>
-  <div id="right">
-    <h1>Dyes</h1>
+  <div class="right">
+    <div>
+      <h1>Dyes</h1>
+    </div>
     <div class="accordion" id="markerAccordion"></div>
     <div id="error"></div>
   </div>
@@ -144,6 +150,9 @@
     const radius = canvas.width / 2;
     const centerX = radius;
     const centerY = radius;
+
+    const selectorCanvas = document.getElementById('selectorCircle');
+    const selectorctx = selectorCanvas.getContext('2d');
 
     function drawColorWheel() {
       for (let angle = 0; angle < 360; angle += 1) {
@@ -167,6 +176,13 @@
     }
 
     drawColorWheel();
+
+    function getCanvasMouse(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      return {x, y}
+    }
 
     // --- HSL conversion utility ---
     function colorToHSL(color) {
@@ -212,43 +228,84 @@
         id: color
       })
 
-      // // Outer white halo for visibility
-      // ctx.beginPath();
-      // ctx.arc(x, y, 11, 0, 2 * Math.PI);
-      // ctx.fillStyle = "#fff";
-      // ctx.globalAlpha = 0.9;
-      // ctx.fill();
-      // ctx.globalAlpha = 1.0;
-      // Marker circle
       ctx.beginPath();
       ctx.arc(x, y, 6, 0, 2 * Math.PI);
       ctx.fillStyle = color;
       ctx.strokeStyle = "#111";
-      // ctx.lineWidth = 2;
       ctx.fill();
       ctx.stroke();
     }
-    canvas.addEventListener('click', (e) => {
-      // Get mouse position relative to canvas
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
+    
 
-      // 3. Check if click is inside any marker
+    let selCenter, selRadius, selecting;
+
+    // draw a circle representing the current selection
+    function drawSelCircle() {
+      // clear previous
+      selectorctx.clearRect(0, 0, canvas.width, canvas.height);
+      // draw circle
+      selectorctx.beginPath();
+      selectorctx.arc(selCenter.x, selCenter.y, selRadius, 0, 2 * Math.PI, false)
+      selectorctx.strokeStyle = "#FFFFFF"
+      selectorctx.stroke();
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      selCenter = getCanvasMouse(e);
+      selecting = true;
+    })
+    canvas.addEventListener('mousemove', (e) => {
+      
+      if (selecting){
+        curLoc = getCanvasMouse(e);
+
+        // calculate the selection's radius
+        selRadius = Math.sqrt(Math.pow(curLoc.x - selCenter.x, 2)  + Math.pow(curLoc.y - selCenter.y, 2))
+        drawSelCircle()
+      }
+    })
+    canvas.addEventListener('mouseup', (e) => {
+      // if the selected radius is really small then probably we just clicked somewhere
+      if (!selRadius || selRadius < 10) {
+        selRadius = 10
+      }
+
+      // draw the final circle
+      drawSelCircle()
+
+      // hide all the markers that aren't in the selection
       for (let i = 0; i < markerPositions.length; i++) {
         const m = markerPositions[i];
-        const dx = mx - m.x;
-        const dy = my - m.y;
-        if (dx*dx + dy*dy <= m.radius*m.radius) {
-          // 4. Respond! For example, alert or call a function
-          // alert('Clicked marker: ' + m.id);
-          const clicked = document.getElementById(m.id);
-          clicked.click();
+        const item = document.getElementById(m.id);
 
-          break;
+        const itemInCircle = Math.pow(selCenter.x - m.x, 2) + Math.pow(selCenter.y - m.y, 2) <= Math.pow(selRadius, 2)
+        if (itemInCircle) {
+          item.parentElement.style.display = 'block';
+        } else {
+          item.parentElement.style.display = 'none';
         }
       }
-    });
+
+      selRadius = null;
+      selCenter = null;
+      selecting = null;
+    })
+
+    clearSelection = document.getElementById("clear");
+    clearSelection.addEventListener("click", (e) => {
+      // show all the markers
+      for (let i = 0; i < markerPositions.length; i++) {
+        const m = markerPositions[i];
+        const item = document.getElementById(m.id);
+
+        item.parentElement.style.display = 'block';
+      }
+
+      selectorctx.clearRect(0, 0, canvas.width, canvas.height);      
+      selRadius = null;
+      selCenter = null;
+      selecting = null;
+    })
 
 
     // convert hex code to rgb values
@@ -272,7 +329,7 @@
 
     // --- On page load, fetch the markers file ---
     window.addEventListener('DOMContentLoaded', () => {
-      fetch('pets/data.json')
+      fetch('/pets/data.json')
         .then(resp => {
           if (!resp.ok) throw new Error("Failed to load data.json");
           return resp.json();
@@ -301,7 +358,7 @@
           // }
           const accordion = document.getElementById('markerAccordion');
 
-          const sortedColors = Object.keys(data["dyes_by_color"]).sort();
+          const sortedColors = Object.keys(data["dyes_by_color"]).sort((a,b) => {return colorToHSL(a).l - colorToHSL(b).l});
           sortedColors.forEach(color => {
             const dyes = data["dyes_by_color"][color];
             const hsl = colorToHSL(color);
@@ -406,7 +463,7 @@
             // header.appendChild(swatch);
 
             const title = document.createElement('span');
-            title.textContent = item_name;
+            title.textContent = "Unknown (flashies?) " + item_name;
             header.appendChild(title);
 
             const arrow = document.createElement('span');

@@ -139,7 +139,9 @@ while(True):
         pyautogui.moveRel(0, petList["height"])
     else:
         pyautogui.scroll(-1)
-    time.sleep(0.2)
+    # time.sleep(0.2)
+    # grab a screenshot specifically for the row of the pet's name
+    petProfileGrab = pyautogui.screenshot(region=petList["region"])
     # and click
     mabiClick(sleepDuring=0.2)
     time.sleep(0.2)
@@ -176,8 +178,8 @@ while(True):
         # create profile image
         profilePic = Image.new('RGB', (petList["region"][2], petList["height"]*8))
         profilePic.paste(
-            # use prevPetListScreen here so it is not cluttered by being selected
-            prevPetListScreen.crop((
+            # use petProfileGrab here so it is not cluttered by being selected
+            petProfileGrab.crop((
                 0, # left 
                 petList["height"]*min(8, petNumber), # top
                 petList["region"][2], # right

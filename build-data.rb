@@ -30,9 +30,13 @@ unknown_items_by_name = {}
 pet_dirs.each do |pet_dir|
     puts pet_dir.basename
 
-    # I was hoping to get the pet's name from this but the tesseract isn't detecting the name likely due to relatively low contrast
-        # will probably have to try modifying the source image to be from before that row was selected and revisit this then
-    # details = RTesseract.new((pet_dir + "profile.png").to_s).to_s
+    # try and parse the pet details
+    details = RTesseract.new((pet_dir + "profile.png").to_s).to_s
+    pet_details = {
+        "profile_pic": (pet_dir + "profile.png").to_s,
+        "parsed_details": details,
+        "dyes": []
+    }
 
     # for each of the item types (dye types) detected on this pet parse some info
     item_types = pet_dir.children.select{|a| a.directory? }
@@ -55,6 +59,7 @@ pet_dirs.each do |pet_dir|
                 "item_name": item_description.split("\n")[0],
                 "item_description": item_description
             }
+            pet_details[:dyes] << item_details
 
             if (item_color)
                 dyes_by_color[item_color] ||= []
@@ -64,6 +69,11 @@ pet_dirs.each do |pet_dir|
                 unknown_items_by_name[item_details[:item_name]] << item_details
             end
         end
+    end
+
+    # write pet details file 
+    File.open(pet_dir + "data.json", 'w') do |f| 
+        f.write(JSON.pretty_generate(pet_details))
     end
 end
 
