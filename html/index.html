@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Color Wheel with Accordion Markers</title>
+  <title>Mabinogi Dye Ampoules</title>
   <style>
     body {
       margin: 0;
@@ -20,6 +20,7 @@
       width: 50vw;
       height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
     }
@@ -129,10 +130,33 @@
 </head>
 <body>
   <div class="left">
+    <div style="flex: 1 1 0%; color: #777;">
+      <p style="padding-top: 100px;">The chart below represents all of my fixed color dye ampoules.</p>
+      <p>They have been graphed using hue (0-360) and saturation (distance from center).</p>
+      <p>You can click/drag on the chart to filter the list to a region.</p>
+      <p>You can also use the #HEXCODE box just above the chart to manually enter a hexcode.</p>
+      <p>If the #HEXCODE is valid the small circle under the box will fill-in with that color.</p>
+      <p>Click the small circle to filter to a region at that color.</p>
+      <p>You can use the X at the top right of the chart to clear the region.</p>
+      <p>If something goes wrong just refresh the page.</p>
+    </div>
     <div style="position: relative; width: 400px; height: 400px;">
       <canvas id="colorWheel" width="400" height="400" style="z-index: 1;"></canvas>
       <canvas id="selectorCircle" width="400" height="400" style="z-index: 2; pointer-events: none;"></canvas>
-      <h1 id="clear" style="position: absolute; top: 0; right: 0; color: #444;" title="clear selection">X</h1>
+      <div>
+        <input type="text" id="colorSearch" placeholder="#HEXCODE" style="width: 10ch; background-color: #555">
+        <span id="colorSearchSwatch" class="swatch" style="display: block;">
+        </span>
+        <h1 id="clear" style="position: absolute; top: 0; right: 0; color: #444;" title="clear selection">X</h1>
+      </div>
+    </div>
+    <div style="flex: 1 1 0%; color: #777;">
+      <p style="padding-top: 40px;">The list of colors to the right is sorted by lightness (darkest to lightest).</p>
+      <p>You can click on a color to learn more about the dyes themselves.</p>
+      <p>There might be some mislabeled colors so there's a picture of the dye and tooltip.</p>
+      <p>If you make it to the bottom of the list there are some Unknown dyes.</p>
+      <p>Most of these are hopefully flashy dyes but there are some obviously misidentified ones in there.</p>
+      <p>If you click on the picture of a dye it will take you to info about the pet it is on.</p>
     </div>
   </div>
   <div class="right">
@@ -153,6 +177,10 @@
 
     const selectorCanvas = document.getElementById('selectorCircle');
     const selectorctx = selectorCanvas.getContext('2d');
+
+    const colorSearch = document.getElementById("colorSearch");
+    const colorSearchSwatch = document.getElementById("colorSearchSwatch");
+
 
     function drawColorWheel() {
       for (let angle = 0; angle < 360; angle += 1) {
@@ -211,10 +239,20 @@
       }
       return { h: h||0, s: s||0, l: l||0 };
     }
+    // converts hsl (0-360, 0-1, 0-1) to hexcode
+    // see this stackoverflow answer https://stackoverflow.com/a/44134328
+    function hslToHex(h, s, l) {
+      const a = s * Math.min(l, 1 - l);
+      const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');   // convert to Hex and prefix "0" if needed
+      };
+      return `#${f(0)}${f(8)}${f(4)}`;
+    }
 
-    // --- Draw marker ---
-    let markerPositions = [];
-    function drawMarker(h, s, color) {
+    
+    function hsToXY(h, s){
       // h: [0,360], s: [0,1]
       // Place marker at correct angle and distance from center (saturation)
       const angleRad = (h) * Math.PI / 180; // -90 to start at top
@@ -222,14 +260,37 @@
       const x = centerX + r * Math.cos(angleRad);
       const y = centerY + r * Math.sin(angleRad);
 
+      return { x: x, y: y };
+    }
+    function xyToHS(x, y){
+      // magnitude of the xy (0.98 was used to scale everything to avoid the edges slightly)
+      const r = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2))/0.98;
+      // now s is the proportion of r to the radius
+      const s = r/radius;
+      // and calculate hue by doing the atan2 (result in radians)
+      let h = Math.atan2((y - centerY), (x - centerX))
+      // fix h to be continuous from 0 -> 360
+      if (h < 0){
+        h = 2*Math.PI + h
+      }
+
+      // return h,s converting to h to degrees
+      return { h: h*180/Math.PI, s: s}
+    }
+
+    // --- Draw marker ---
+    let markerPositions = [];
+    function drawMarker(h, s, color) {
+      const m = hsToXY(h,s);
+
       markerPositions.push({
-        x, y, 
+        x: m.x, y: m.y, 
         radius: 6,
         id: color
       })
 
       ctx.beginPath();
-      ctx.arc(x, y, 6, 0, 2 * Math.PI);
+      ctx.arc(m.x, m.y, 6, 0, 2 * Math.PI);
       ctx.fillStyle = color;
       ctx.strokeStyle = "#111";
       ctx.fill();
@@ -250,9 +311,35 @@
       selectorctx.stroke();
     }
 
+    function showSelectedColors() {
+      // hide all the markers that aren't in the selection
+      for (let i = 0; i < markerPositions.length; i++) {
+        const m = markerPositions[i];
+        const item = document.getElementById(m.id);
+
+        let itemInCircle = true;
+        if (selCenter){
+          itemInCircle = Math.pow(selCenter.x - m.x, 2) + Math.pow(selCenter.y - m.y, 2) <= Math.pow(selRadius, 2)
+        } 
+
+        if (itemInCircle) {
+          item.parentElement.style.display = 'block';
+        } else {
+          item.parentElement.style.display = 'none';
+        }
+      }
+    }
+
+    // clicking/dragging on colorwheel to select
     canvas.addEventListener('mousedown', (e) => {
       selCenter = getCanvasMouse(e);
       selecting = true;
+
+      // use x,y -> h,s,l (use medium value for l) -> hexcode
+      const hsPart = xyToHS(selCenter.x, selCenter.y);
+      const reversedColor = hslToHex(hsPart.h, hsPart.s, 0.5);
+      colorSearchSwatch.style.background = reversedColor;
+      colorSearch.value = reversedColor;
     })
     canvas.addEventListener('mousemove', (e) => {
       
@@ -273,38 +360,56 @@
       // draw the final circle
       drawSelCircle()
 
-      // hide all the markers that aren't in the selection
-      for (let i = 0; i < markerPositions.length; i++) {
-        const m = markerPositions[i];
-        const item = document.getElementById(m.id);
-
-        const itemInCircle = Math.pow(selCenter.x - m.x, 2) + Math.pow(selCenter.y - m.y, 2) <= Math.pow(selRadius, 2)
-        if (itemInCircle) {
-          item.parentElement.style.display = 'block';
-        } else {
-          item.parentElement.style.display = 'none';
-        }
-      }
+      // hide/show the dyes based on selection
+      showSelectedColors()
 
       selRadius = null;
       selCenter = null;
       selecting = null;
     })
 
+    // clicking the little x to clear color wheel selection
     clearSelection = document.getElementById("clear");
     clearSelection.addEventListener("click", (e) => {
-      // show all the markers
-      for (let i = 0; i < markerPositions.length; i++) {
-        const m = markerPositions[i];
-        const item = document.getElementById(m.id);
-
-        item.parentElement.style.display = 'block';
-      }
-
+      // clear the selection
       selectorctx.clearRect(0, 0, canvas.width, canvas.height);      
       selRadius = null;
       selCenter = null;
       selecting = null;
+
+      // show the markers
+      showSelectedColors();
+    })
+
+
+    // add the listener for the hexcode search input
+    colorSearch.addEventListener('input', function(event) {
+      const inputHex = event.target.value.match(/^#?([A-F0-9a-f]{6})$/)
+      if (inputHex) {
+        const inputColor = "#" + inputHex[1];
+
+        colorSearchSwatch.style.background = inputColor;
+      }
+    });
+    // and turn the color search swatch into a button
+    colorSearchSwatch.addEventListener('click', function(event) {
+      if (colorSearchSwatch.style.background){    
+        const searchHSL = colorToHSL(colorSearchSwatch.style.background);
+        console.log(searchHSL);
+        selRadius = 10;
+        selCenter = hsToXY(searchHSL.h, searchHSL.s);
+
+        // draw a selection circle
+        drawSelCircle();
+
+        // hide/show the dyes based on selection
+        showSelectedColors();
+
+        // reset the selection info
+        selRadius = null;
+        selCenter = null;
+        selecting = null;
+      }
     })
 
 
@@ -457,11 +562,6 @@
             header.setAttribute('id', item_name);
             header.setAttribute('aria-expanded', 'false');
 
-            // const swatch = document.createElement('span');
-            // swatch.className = 'swatch';
-            // swatch.style.background = color;
-            // header.appendChild(swatch);
-
             const title = document.createElement('span');
             title.textContent = "Unknown (flashies?) " + item_name;
             header.appendChild(title);
@@ -473,10 +573,6 @@
 
             const panel = document.createElement('div');
             panel.className = 'accordion-panel';
-            // if (i === 0) {
-            //   header.classList.add('active');
-            //   panel.style.maxHeight = "200px";
-            // }
 
             // Panel content
             const content = document.createElement('div');
@@ -538,6 +634,8 @@
           document.getElementById('error').textContent = err.message;
         });
     });
+
+
   </script>
 </body>
 </html>
