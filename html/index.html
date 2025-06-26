@@ -157,6 +157,14 @@
       <p>If you make it to the bottom of the list there are some Unknown dyes.</p>
       <p>Most of these are hopefully flashy dyes but there are some obviously misidentified ones in there.</p>
       <p>If you click on the picture of a dye it will take you to info about the pet it is on.</p>
+      <p>p.s. Here is a little rgb converter for convenience.</p>
+      <div>
+        <input type="text" id="rgb-r" value="0" style="width: 4ch; background-color: #655">
+        <input type="text" id="rgb-g" value="0" style="width: 4ch; background-color: #565">
+        <input type="text" id="rgb-b" value="0" style="width: 4ch; background-color: #556">
+        =
+        <input type="text" id="rgb-hex" placeholder="#HEXCODE" style="width: 10ch; background-color: #555">
+      </div>
     </div>
   </div>
   <div class="right">
@@ -167,6 +175,13 @@
     <div id="error"></div>
   </div>
   <script>
+
+    const rgbConverter = [
+      document.getElementById("rgb-r"),
+      document.getElementById("rgb-g"),
+      document.getElementById("rgb-b"),
+      document.getElementById("rgb-hex")
+    ]
 
     // --- Drawing the color wheel (static part) ---
     const canvas = document.getElementById('colorWheel');
@@ -251,6 +266,22 @@
       return `#${f(0)}${f(8)}${f(4)}`;
     }
 
+    // function to take r,g,b components and return a hexcode
+    function rgbToHex(r, g, b) {
+      function hexComponent(c){
+        return ("00" + c.toString(16)).slice(-2);
+      }
+      return "#" + hexComponent(r) + hexComponent(g) + hexComponent(b);
+    }
+    // little function to add as the callback for value changes to check/calc the rgb value in the convenience converter
+    function rgbConvenience(){
+      const [r, g, b] = rgbConverter.slice(0, 3).map(c => parseInt(c.value));
+
+      rgbConverter[3].value = rgbToHex(r,g,b);
+    }
+    // add event listeners for if the components get updated
+    rgbConverter.slice(0, 3).map(c => c.addEventListener('input', rgbConvenience));
+
     
     function hsToXY(h, s){
       // h: [0,360], s: [0,1]
@@ -306,8 +337,9 @@
       selectorctx.clearRect(0, 0, canvas.width, canvas.height);
       // draw circle
       selectorctx.beginPath();
-      selectorctx.arc(selCenter.x, selCenter.y, selRadius, 0, 2 * Math.PI, false)
-      selectorctx.strokeStyle = "#FFFFFF"
+      selectorctx.arc(selCenter.x, selCenter.y, selRadius, 0, 2 * Math.PI, false);
+      selectorctx.strokeStyle = "#000";
+      selectorctx.lineWidth = 2;
       selectorctx.stroke();
     }
 
@@ -516,7 +548,8 @@
               dyeImg.setAttribute("data-desc", dye["item_description"]);
               
               const petLink = document.createElement('a');
-              petLink.href = dye["pet"];
+              petLink.href = "/pet.html?id=" + dye["pet"];
+              petLink.setAttribute('target', '_blank');
               petLink.appendChild(dyeImg);
               
               content.appendChild(petLink)
@@ -596,9 +629,9 @@
               
               
               const petLink = document.createElement('a');
-              petLink.href = i["pet"];
+              petLink.href = "/pet.html?id=" + i["pet"];
+              petLink.setAttribute('target', '_blank');
               petLink.appendChild(itemImg);
-              
               content.appendChild(petLink)
             })
 

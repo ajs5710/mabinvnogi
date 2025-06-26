@@ -53,12 +53,13 @@ pet_dirs.each do |pet_dir|
             end
 
             item_details = {
-                "pet": pet_dir + "profile.png",
+                "pet": pet_dir.basename,
                 "item": item,
                 "item_type": item_type.basename,
                 "item_name": item_description.split("\n")[0],
                 "item_description": item_description
             }
+            item_details["item_color"] = item_color if item_color
             pet_details[:dyes] << item_details
 
             if (item_color)

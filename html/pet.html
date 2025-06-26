@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pet Profile</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: #222;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;  /* horizontal center */
+      align-items: center;      /* vertical center */
+    }
+    .profile-container {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;  /* align the tops, or use center for vertical alignment of items */
+      gap: 40px;               /* space between profile and table */
+    }
+    #profile {
+      padding: 0;
+    }
+    #dyetable {
+      /* Optionally set a max-width or width */
+    }
+    h1 {
+      margin: 0 0 20px 40px;
+    }
+    .swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      margin-right: 16px;
+      box-shadow: 0 0 3px #000a;
+      flex-shrink: 0;
+    }
+
+    td {
+      position: relative; /* required for tooltip positioning */
+      padding: 8px;
+    }
+    /* Tooltip container; initially hidden */
+    .tooltip-img {
+      display: none;
+      position: absolute;
+      top: 110%; /* Show below the cell */
+      /*left: 50%;*/
+      transform: translateX(-50%);
+      z-index: 10;
+      background: #222;
+      border: 1px solid #444;
+      padding: 4px;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px #000c;
+      max-width: 600px;
+      max-height: 490px;
+      pointer-events: none;
+    }
+    /* Show tooltip on td:hover */
+    td:hover .tooltip-img {
+      display: block;
+    }
+    .tooltip-img img {
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        align-items: flex-start;
+      }
+      .profile-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+      }
+      #profile, #dyetable {
+        padding: 0;
+        margin: 0;
+      }
+      h1 {
+        margin: 0 0 20px 0;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="profile-container">
+    <div id="profile">
+    </div>
+    <table id="dyetable" style="padding: 40px 0 0 0;">
+      
+    </table>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const petID = params.get("id");
+
+    const profile = document.getElementById('profile');
+    const dyeTable = document.getElementById('dyetable');
+
+
+    // sorts an array of cells by their attr name
+    function sortCellsByAttr(cellsArr, attrName){
+      return cellsArr.sort((a,b) => parseInt(a.getAttribute(attrName)) - parseInt(b.getAttribute(attrName)))
+    }
+
+    // returns an array of the cells where they are grouped by attrName 
+      // but allowing for a range from the first value to the last value in that grouping
+    function groupCellsByRange(cellsArr, attrName, range){
+      return sortCellsByAttr(cellsArr, attrName).reduce((rows, cell) => {
+        // if this is the first item
+        if (rows.length == 0){
+          rows.push([cell]);
+          return rows;
+        }
+
+        // if we're still in the previous row (curVal < firstVal + range)
+        console.log(cell.getAttribute(attrName), "<", (rows[rows.length - 1][0].getAttribute(attrName) + range))
+        if (parseInt(cell.getAttribute(attrName)) < parseInt(rows[rows.length - 1][0].getAttribute(attrName)) + range){
+          // then append to the previous row
+          rows[rows.length - 1].push(cell);
+        } else {
+          // start a new row
+          rows.push([cell]);
+        }
+
+        return rows;
+      }, []);
+    }
+
+
+    fetch('/pets/' + petID + '/data.json')
+      .then(resp => {
+        if (!resp.ok) throw new Error("Failed to load data.json");
+        return resp.json();
+      })
+      .then(data => {
+
+        const profilePic = document.createElement("img");
+        profilePic.src = "/" + data["profile_pic"];
+        profilePic.alt = data["parsed_details"];
+        profile.appendChild(profilePic);
+        
+        // iterate through the dyes and convert them into an array of td cells
+        const cells = data["dyes"].map(dye => {
+          const td = document.createElement("td");
+
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.style = "display: block;";
+          if (dye["item_color"]) {
+            swatch.style = "background: " + dye["item_color"] + ";display: block;";
+          }
+          td.appendChild(swatch);
+
+          // tooltip image
+          const tooltipDiv = document.createElement("div");
+          tooltipDiv.className = "tooltip-img";
+          const imgPath = "/" + dye["item"];
+          const img = document.createElement("img");
+          img.src = imgPath;
+          img.setAttribute("loading", "lazy");
+          img.setAttribute("width", "600");
+          img.setAttribute("height", "490");
+          tooltipDiv.appendChild(img);
+          td.appendChild(tooltipDiv);
+          // // we'll use the img as a tooltip
+          // const imgPath = "/" + dye["item"]
+          // const img = document.createElement("img");
+          // img.src = imgPath;
+          // img.style.display = 'none';
+          // td.appendChild(img);
+
+          // get just the filename w/o extension and extract the x,y coords from it
+          const [x,y] = imgPath.split('\\').pop().split('/').pop().split('.').shift().match(/(\d+)/g);
+          td.setAttribute("data-x", x);
+          td.setAttribute("data-y", y);
+          return td;
+        })
+
+
+        // group cells by x property
+        const cols = groupCellsByRange(cells, "data-x", 5)
+        // group cells by y property
+        const rows = groupCellsByRange(cells, "data-y", 5)
+
+        console.log(rows)
+        console.log(cols)
+
+        // build the trs and fill in any empty cells
+        rows.forEach(row => {
+          const tr = document.createElement("tr");
+
+          let sortedRow = sortCellsByAttr(row, "data-x")
+
+          // for each column that exists
+          cols.forEach(col => {
+            // if the row is exhausted pad it with blank cells
+            if (sortedRow.length == 0){
+              tr.appendChild(document.createElement("td"));
+              return;
+            }
+
+            const colBegin = parseInt(col[0].getAttribute("data-x"));
+            const colEnd = parseInt(col[col.length - 1].getAttribute("data-x"));
+            const colX = parseInt(sortedRow[0].getAttribute("data-x"));
+
+            // if the next item in our row is for this column
+            if (colX >= colBegin && colX <= colEnd) {
+              tr.appendChild(sortedRow.shift());
+            } else {
+              // otherwise pad a blank cell
+              tr.appendChild(document.createElement("td"));
+            }
+          })
+
+          dyetable.appendChild(tr);
+        })
+      })
+
+
+  </script>
+</body>
+</html>
