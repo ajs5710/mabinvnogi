@@ -34,6 +34,7 @@ pet_dirs.each do |pet_dir|
     details = RTesseract.new((pet_dir + "profile.png").to_s).to_s
     pet_details = {
         "profile_pic": (pet_dir + "profile.png").to_s,
+        "pet_name": details[/[a-zA-Z]{3,}/],
         "parsed_details": details,
         "dyes": []
     }
@@ -54,6 +55,7 @@ pet_dirs.each do |pet_dir|
 
             item_details = {
                 "pet": pet_dir.basename,
+                "pet_name": pet_details[:pet_name],
                 "item": item,
                 "item_type": item_type.basename,
                 "item_name": item_description.split("\n")[0],
@@ -84,4 +86,15 @@ File.open(pets_folder + "data.json", 'w') do |f|
         "dyes_by_color": dyes_by_color,
         "unknown_items_by_name": unknown_items_by_name
     }))
+end
+
+
+# generate a csv file that we can use for sharing w/o any questions about tos
+File.open(pets_folder + "data.csv", 'w') do |f|
+    f.write("Color,Type,Pet\n")
+    dyes_by_color.each do |color, dyes|
+        dyes.each do |dye|
+            f.write([color, dye[:item_name], dye[:pet_name]]*"," + "\n")
+        end
+    end
 end
