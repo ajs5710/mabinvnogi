@@ -1,8 +1,30 @@
 # mabinvnogi
-Attempt to locate and visualize items across pets inventories in Mabinogi
+Attempt to locate and visualize items (focused around dyes) across pets inventories in Mabinogi
 
-This project is broken up into three main parts:
 
+
+### QuickStart aka Skip the Rest of the Page
+You can use the csv version of the page here: https://mabinogi-dyes.timreks.tools/
+
+It uses my list of dyes by default but can have a url to a csv pasted in to override it.
+
+The csv is expected to be as follows:
+```
+Color,Type of Dye,Pet Name
+#RRGGBB,Fixed Dye Ampoule,dyeperbaby
+```
+Of those columns only Color is really important.  The other two columns could be other things that make logical sense to you instead. For example, "Bank Tab" might make more sense to you than "Pet Name" depending on where you are storing your dyes.
+
+Only the first three Columns are used by the page and additional columns can be tracked in your csv to help with record-keeping.  Note that any additional columns in that tab will be visible to anyone you share the link with. 
+
+**DO NOT USE COMMAS OR NEW LINE CHARACTERS IN THE CSV**.  The parsing of the CSV that is being done is pretty naive and will likely not work correctly if it encounters an extra comma or return.
+
+Here is an example sheet for reference: https://docs.google.com/spreadsheets/d/1mfMIGsd6peQfKsz48x7d8Zk98zftMxba47E2uLYWpd0/edit?usp=sharing I recommend using a google sheet as it makes it pretty easy to publish the CSV so that you can paste the link into The Visualizer.
+Refer to the csvguide.html page for a little more details on publishing a tab in a google sheet.
+
+
+
+**This project is broken up into three main parts:**
 
 ### The Data Scraper
 Located in the datascraper folder, this project consists of the python "inventorypets.py" file.
@@ -52,23 +74,3 @@ Note that there are multiple tunnels in the Ngrok configuration.  One of these t
 The 'fromcsv.html' file is setup to be sourced from a csv file.  This accomplishes two things.  Firstly, it makes it possible to allow others to use The Visualizer relatively easily based on a manually created csv file.  Secondly, using this version obfuscates the data generation methods, which while maybe not strictly necessary, might run slightly afoul of the TOS.
 
 The downside is that the 'fromcsv.html' and by extension the 'safe' ngrok tunnel do not include the unidentified (i.e. flashy) dyes.
-
-
-### Skip to The Visualizer
-You can use the csv version of the page here: https://mabinogi-dyes.timreks.tools/
-
-It uses my list of dyes by default but can have a url to a csv pasted in to override it.
-
-The csv is expected to be as follows:
-```
-Color,Type of Dye,Pet Name
-#RRGGBB,Fixed Dye Ampoule,dyeperbaby
-```
-Of those columns only Color is really important.  The other two columns could be other things that make logical sense to you instead. For example, "Bank Tab" might make more sense to you than "Pet Name" depending on where you are storing your dyes.
-
-Only the first three Columns are used by the page and additional columns can be tracked in your csv to help with record-keeping.  Note that any additional columns in that tab will be visible to anyone you share the link with. 
-
-**DO NOT USE COMMAS OR NEW LINE CHARACTERS IN THE CSV**.  The parsing of the CSV that is being done is pretty naive and will likely not work correctly if it encounters an extra comma or return.
-
-Here is an example sheet for reference: https://docs.google.com/spreadsheets/d/1mfMIGsd6peQfKsz48x7d8Zk98zftMxba47E2uLYWpd0/edit?usp=sharing I recommend using a google sheet as it makes it pretty easy to publish the CSV so that you can paste the link into The Visualizer.
-Refer to the csvguide.html page for a little more details on publishing a tab in a google sheet.
