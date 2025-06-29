@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Mabinogi Dye Custom CSV</title>
+    <style>
+      body {
+        margin: 0;
+        background: #222;
+        color: #fff;
+        font-family: sans-serif;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        color: #777;
+        align-items: center;
+        justify-content: center;
+      }
+      a {
+        color: DarkSlateGray;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="padding-top: 100px; padding-left: 100px;">
+      <p>You can use a custom URL to source the data in the Dye Visualizer.</p>
+      <p>Doing so requires a valid URL.</p>
+      <p>Probably the easiest way to do this is to use a google sheet (sheets.google.com).</p>
+      <p>Create your sheet and then go to File -> Share -> Publish to web</p>
+      <p>Then select the tab with your data and "Comma-seperated values" from the dropdowns.</p>
+      <p>This will give you a link that you can paste directly in the text box in the Dye Visualizer page.</p>
+      <a href="https://docs.google.com/spreadsheets/d/1mfMIGsd6peQfKsz48x7d8Zk98zftMxba47E2uLYWpd0/edit?usp=sharing" target="_blank">Here is an example sheet you can use for reference.</a>
+      <p>You should be able to use any columns as long as the first column is Color.</p>
+      <p>The Type column and Pet columns are just recommended but could be anything really.</p>
+      <p>The Type column is just meant to communicated the type of Dye that it is.</p>
+      <p>While the Pet column is just meant to help you stay organized.</p>
+      <p>Only the first three columns are used by the page so feel free to add additional columns.</p>
+      <div style="display: flex; align-items: flex-start; gap: 3px;">
+        <img src="sheet-publish.PNG" width="400px">
+        <img src="sheet-published.PNG" width="400px">
+      </div>
+    </div>
+  </body>
+</html>

@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mabinogi Dye Ampoules</title>
+  <title>Mabinogi Dye Visualizer</title>
   <style>
     body {
       margin: 0;
@@ -42,6 +42,9 @@
     }
     h1 {
       margin: 0 0 20px 40px;
+    }
+    a {
+      color: DarkSlateGray;
     }
     #error {
       color: #ff7070;
@@ -139,6 +142,8 @@
       <p>Click the small circle to filter to a region at that color.</p>
       <p>You can use the X at the top right of the chart to clear the region.</p>
       <p>If something goes wrong just refresh the page.</p>
+      <input type="text" id="csv" placeholder="Paste your own CSV url" style="width: 25ch; background-color: #555">
+      <a href="/csvguide.html" target="_blank">Learn How</a>
     </div>
     <div style="position: relative; width: 400px; height: 400px;">
       <canvas id="colorWheel" width="400" height="400" style="z-index: 1;"></canvas>
@@ -423,7 +428,6 @@
     colorSearchSwatch.addEventListener('click', function(event) {
       if (colorSearchSwatch.style.background){    
         const searchHSL = colorToHSL(colorSearchSwatch.style.background);
-        console.log(searchHSL);
         selRadius = 10;
         selCenter = hsToXY(searchHSL.h, searchHSL.s);
 
@@ -460,12 +464,17 @@
       return [r,g,b];
     }
 
-    // --- On page load, fetch the markers file ---
-    window.addEventListener('DOMContentLoaded', () => {
+
+    const accordion = document.getElementById('markerAccordion');
+
+    // fill in all the data from csv
+    function generateFromCSV(url) {
       // fetch the published google sheet
-      fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vR0G-tLv0PIen0XG85kBGTzFeq8rkgTG8uHM-pHDNVp-e27UtbPY4EjqPkF8Y9ZICkXvZYEUgK2HUmX/pub?gid=2006952483&single=true&output=csv')
+      fetch(url)
         .then(resp => {
-          if (!resp.ok) throw new Error("Failed to load data.json");
+          if (!resp.ok) throw new Error("Failed to retrieve CSV");
+          if ((new URL(resp.url)).hostname == window.location.host) throw new Error("Not a valid url");
+          console.log(resp)
           return resp.text();
         })
         .then(text => {
@@ -503,9 +512,6 @@
           }, {})
         })
         .then(dyes_by_color => {
-          console.log(dyes_by_color)
-          const accordion = document.getElementById('markerAccordion');
-
           const sortedColors = Object.keys(dyes_by_color).sort((a,b) => {return colorToHSL(a).l - colorToHSL(b).l});
           sortedColors.forEach(color => {
             const item_pet_counts = dyes_by_color[color];
@@ -590,6 +596,31 @@
         .catch(err => {
           document.getElementById('error').textContent = err.message;
         });
+    }
+
+
+    // --- On page load, fetch the markers file ---
+    window.addEventListener('DOMContentLoaded', () => {
+      const defaultCSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0G-tLv0PIen0XG85kBGTzFeq8rkgTG8uHM-pHDNVp-e27UtbPY4EjqPkF8Y9ZICkXvZYEUgK2HUmX/pub?gid=2006952483&single=true&output=csv';
+
+      generateFromCSV(defaultCSV);
+    });
+
+    const csvOverride = document.getElementById("csv");
+    csvOverride.addEventListener('input', function(event) {
+      // reset state
+      accordion.innerHTML = "";
+      markerPositions = [];
+      // and clear canvases
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      selectorctx.clearRect(0, 0, canvas.width, canvas.height);
+      // and clear errors 
+      document.getElementById('error').textContent = "";
+      // redraw wheel
+      drawColorWheel();
+
+      // and add in all the data
+      generateFromCSV(csvOverride.value);
     });
 
 
